@@ -122,3 +122,44 @@ resource "azurerm_virtual_machine" "example_linux_vm" {
     environment = "Test"
   }
 }
+
+resource "azurerm_lb" "example_lb" {
+  name                = "Demo-Load-Balancer"
+  resource_group_name = azurerm_resource_group.example_rg.name
+  location            = azurerm_resource_group.example_rg.location
+  sku                 = "Standard"
+
+  frontend_ip_configuration {
+    name                          = "classiclb"
+    subnet_id                     = azurerm_subnet.example_subnet.id
+    private_ip_address_allocation = "Dynamic"
+  }
+}
+
+resource "azurerm_lb_backend_address_pool" "example_lb_pool" {
+  loadbalancer_id = azurerm_lb.example_lb.id
+  name            = "classiclb"
+}
+
+resource "azurerm_lb_probe" "example_lb_probe" {
+  resource_group_name = azurerm_resource_group.example_rg.name
+  loadbalancer_id     = azurerm_lb.example_lb.id
+  name                = "classiclb"
+  port                = 80
+  interval_in_seconds = 10
+  number_of_probes    = 3
+  protocol            = "Http"
+  request_path        = "/"
+}
+
+resource "azurerm_lb_rule" "example_lb_rule" {
+  resource_group_name            = azurerm_resource_group.example_rg.name
+  loadbalancer_id                = azurerm_lb.example_lb.id
+  name                           = "classiclb"
+  protocol                       = "Tcp"
+  frontend_port                  = 80
+  backend_port                   = 80
+  frontend_ip_configuration_name = "classiclb"
+  backend_address_pool_id        = azurerm_lb_backend_address_pool.example_lb_pool.id
+  probe_id                       = azurerm_lb_probe.example_lb_probe.id
+}
